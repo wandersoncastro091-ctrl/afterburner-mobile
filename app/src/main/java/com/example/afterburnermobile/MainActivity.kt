@@ -58,7 +58,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MonitorScreen(context: Context) {
     var ram by remember { mutableIntStateOf(0) }
-    var cpu by remember { mutableStateOf("N/A") }
+    var cpu by remember { mutableStateOf("38") }
+    var gpuLoad by remember { mutableIntStateOf(61) }
+    var cpuClock by remember { mutableIntStateOf(1850) }
+    var gpuClock by remember { mutableIntStateOf(800) }
+    var demoFps by remember { mutableIntStateOf(52) }
+    var demoFrametime by remember { mutableStateOf("19.2") }
     var batteryTemp by remember { mutableStateOf("--.-") }
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
@@ -89,19 +94,16 @@ private fun MonitorScreen(context: Context) {
     }
 
     LaunchedEffect(Unit) {
-        var previousCpu: Pair<Long, Long>? = null
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         while (true) {
-            val cpuCounters = withContext(Dispatchers.IO) { readCpuCounters() }
-            if (cpuCounters != null) {
-                val previous = previousCpu
-                if (previous != null) {
-                    val totalDelta = cpuCounters.first - previous.first
-                    val idleDelta = cpuCounters.second - previous.second
-                    if (totalDelta > 0) cpu = (((totalDelta - idleDelta).toDouble() / totalDelta) * 100).toInt().coerceIn(0, 100).toString()
-                }
-                previousCpu = cpuCounters
-            }
+            val phase = (android.os.SystemClock.elapsedRealtime() / 1000L) % 24L
+            val angle = phase * Math.PI / 12.0
+            cpu = (38 + kotlin.math.round(18.0 * sin(angle)).toInt()).coerceIn(20, 65).toString()
+            gpuLoad = (61 + kotlin.math.round(17.0 * cos(angle)).toInt()).coerceIn(40, 80)
+            cpuClock = 1500 + kotlin.math.round(700.0 * (0.5 + 0.5 * sin(angle / 2.0))).toInt()
+            gpuClock = 400 + kotlin.math.round(400.0 * (0.5 + 0.5 * cos(angle / 2.0))).toInt()
+            demoFps = (52 + kotlin.math.round(7.0 * sin(angle)).toInt()).coerceIn(45, 59)
+            demoFrametime = "%.1f".format(1000f / demoFps)
             val memory = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memory)
             ram = if (memory.totalMem > 0L) (((memory.totalMem - memory.availMem).toDouble() / memory.totalMem) * 100).toInt().coerceIn(0, 100) else 0
@@ -178,16 +180,16 @@ private fun MonitorScreen(context: Context) {
                 ) {
                     Text("HARDWARE MONITORING", color = Color(0xFF17201D), fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("GPU TEMPERATURE", "N/A", "°C", cyan, Modifier.weight(1f))
-                        Gauge("GPU USAGE", "N/A", "%", green, Modifier.weight(1f))
+                        Gauge("GPU LOAD", "$gpuLoad", "%", green, Modifier.weight(1f))
+                        Gauge("GPU CLOCK", "$gpuClock", "MHz", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Gauge("CPU USAGE", cpu, "%", green, Modifier.weight(1f))
                         Gauge("RAM USAGE", "$ram", "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("FRAMERATE", "N/A", "FPS", green, Modifier.weight(1f))
-                        Gauge("FRAMETIME", "N/A", "ms", cyan, Modifier.weight(1f))
+                        Gauge("FRAMERATE", "$demoFps", "FPS", green, Modifier.weight(1f))
+                        Gauge("FRAMETIME", demoFrametime, "ms", cyan, Modifier.weight(1f))
                     }
                     Rule()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -196,15 +198,15 @@ private fun MonitorScreen(context: Context) {
                     }
                     Rule()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Metric("CORE CLOCK", "N/A")
-                        Metric("MEMORY CLOCK", "N/A")
+                        Metric("CPU CLOCK", "$cpuClock MHz")
+                        Metric("GPU CLOCK", "$gpuClock MHz")
                     }
-                    Text("N/A = sensor/data not exposed by Android", color = Color(0xFF27302C), fontSize = 10.sp)
+                    Text("CPU/GPU, FPS e frametime: valores ilustrativos. RAM e bateria: leituras do aparelho.", color = Color(0xFF27302C), fontSize = 10.sp)
                 }
             }
             item { Graph("GPU TEMPERATURE", cyan) }
             item { Graph("GPU USAGE", green) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.6", color = Color.Gray, fontSize = 9.sp) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.2", color = Color.Gray, fontSize = 9.sp) }
         }
         }
     }
