@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MonitorScreen(context: Context) {
     var ram by remember { mutableIntStateOf(0) }
-    var cpu by remember { mutableIntStateOf(0) }
+    var cpu by remember { mutableStateOf("N/A") }
     var batteryTemp by remember { mutableStateOf("--.-") }
     var batteryLevel by remember { mutableIntStateOf(0) }
 
@@ -63,7 +63,7 @@ private fun MonitorScreen(context: Context) {
                 if (previous != null) {
                     val totalDelta = cpuCounters.first - previous.first
                     val idleDelta = cpuCounters.second - previous.second
-                    if (totalDelta > 0) cpu = (((totalDelta - idleDelta).toDouble() / totalDelta) * 100).toInt().coerceIn(0, 100)
+                    if (totalDelta > 0) cpu = (((totalDelta - idleDelta).toDouble() / totalDelta) * 100).toInt().coerceIn(0, 100).toString()
                 }
                 previousCpu = cpuCounters
             }
@@ -95,7 +95,7 @@ private fun MonitorScreen(context: Context) {
                         Gauge("GPU USAGE", "N/A", "%", green, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("CPU USAGE", "$cpu", "%", green, Modifier.weight(1f))
+                        Gauge("CPU USAGE", cpu, "%", green, Modifier.weight(1f))
                         Gauge("RAM USAGE", "$ram", "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
