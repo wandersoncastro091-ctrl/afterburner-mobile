@@ -63,6 +63,13 @@ private fun MonitorScreen(context: Context) {
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
     var shizukuGranted by remember { mutableStateOf(false) }
+    var fps by remember { mutableIntStateOf(52) }
+    var frametime by remember { mutableStateOf("19.2") }
+    var cpuClock by remember { mutableStateOf("2.00 GHz") }
+    var gpuClock by remember { mutableStateOf("650 MHz") }
+    var memoryClock by remember { mutableStateOf("900 MHz") }
+    val cpuHistory = remember { mutableStateListOf<Float>() }
+    val ramHistory = remember { mutableStateListOf<Float>() }
 
     val permissionResultListener = remember {
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
@@ -105,6 +112,17 @@ private fun MonitorScreen(context: Context) {
             val memory = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memory)
             ram = if (memory.totalMem > 0L) (((memory.totalMem - memory.availMem).toDouble() / memory.totalMem) * 100).toInt().coerceIn(0, 100) else 0
+            val phase = (android.os.SystemClock.elapsedRealtime() / 1000L) % 30L
+            fps = (52 + kotlin.math.round(7.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
+            frametime = "%.1f".format(1000f / fps)
+            val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
+            cpuClock = "%.2f GHz".format(2.0 + 0.35 * clockPhase)
+            gpuClock = "%.0f MHz".format(650.0 + 150.0 * clockPhase)
+            memoryClock = "%.0f MHz".format(900.0 + 100.0 * clockPhase)
+            cpuHistory.add(cpu.toFloatOrNull() ?: 0f)
+            ramHistory.add(ram.toFloat())
+            if (cpuHistory.size > 60) cpuHistory.removeAt(0)
+            if (ramHistory.size > 60) ramHistory.removeAt(0)
             val battery = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             val level = battery?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
             val scale = battery?.getIntExtra(BatteryManager.EXTRA_SCALE, 100) ?: 100
@@ -186,8 +204,8 @@ private fun MonitorScreen(context: Context) {
                         Gauge("RAM USAGE", "$ram", "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("FRAMERATE", "N/A", "FPS", green, Modifier.weight(1f))
-                        Gauge("FRAMETIME", "N/A", "ms", cyan, Modifier.weight(1f))
+                        Gauge("FRAMERATE", fps.toString(), "FPS", green, Modifier.weight(1f))
+                        Gauge("FRAMETIME", frametime, "ms", cyan, Modifier.weight(1f))
                     }
                     Rule()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -196,15 +214,21 @@ private fun MonitorScreen(context: Context) {
                     }
                     Rule()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Metric("CORE CLOCK", "N/A")
-                        Metric("MEMORY CLOCK", "N/A")
+                        Metric("CPU CLOCK", cpuClock)
+                        Metric("GPU CLOCK", gpuClock)
                     }
-                    Text("N/A = sensor/data not exposed by Android", color = Color(0xFF27302C), fontSize = 10.sp)
+                    Rule()
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Metric("MEMORY CLOCK", memoryClock)
+                        Metric("GPU SENSOR", "N/A")
+                    }
+                    Text("Valores ilustrativos: FPS, frametime e clocks não são medições reais do jogo ou do hardware.", color = Color(0xFF27302C), fontSize = 9.sp)
+                    Text("N/A = sensor/dado não disponibilizado pelo Android", color = Color(0xFF27302C), fontSize = 10.sp)
                 }
             }
-            item { Graph("GPU TEMPERATURE", cyan) }
-            item { Graph("GPU USAGE", green) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.6", color = Color.Gray, fontSize = 9.sp) }
+            item { Graph("CPU USAGE HISTORY", green, cpuHistory) }
+            item { Graph("RAM USAGE HISTORY", cyan, ramHistory) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9", color = Color.Gray, fontSize = 9.sp) }
         }
         }
     }
@@ -249,7 +273,7 @@ private fun Gauge(title: String, value: String, unit: String, accent: Color, mod
             drawLine(accent, Offset(cx, cy), Offset(cx + cos(a).toFloat() * 24.dp.toPx(), cy + sin(a).toFloat() * 24.dp.toPx()), 2.dp.toPx())
         }
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(value, color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Text(value, color = Color(0xFFFFB347), fontSize = 21.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
             Text(" $unit", color = accent, fontSize = 9.sp)
         }
     }
@@ -259,7 +283,7 @@ private fun Gauge(title: String, value: String, unit: String, accent: Color, mod
 private fun Metric(label: String, value: String) {
     Column {
         Text(label, color = Color(0xFF3A443E), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = Color(0xFF111A15), fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+        Text(value, color = Color(0xFF9A5700), fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
     }
 }
 
@@ -267,7 +291,7 @@ private fun Metric(label: String, value: String) {
 private fun Rule() { Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF68736C))) }
 
 @Composable
-private fun Graph(title: String, color: Color) {
+private fun Graph(title: String, color: Color, samples: List<Float>) {
     Column(Modifier.fillMaxWidth().background(Color(0xFF252D28), RoundedCornerShape(6.dp))
         .border(1.dp, Color(0xFF59645D), RoundedCornerShape(6.dp)).padding(10.dp)) {
         Text(title, color = Color(0xFFD4DDD6), fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -276,10 +300,16 @@ private fun Graph(title: String, color: Color) {
                 val y = size.height * i / 4f
                 drawLine(Color(0xFF46534A), Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
             }
-            val pts = (0..40).map { i -> Offset(size.width * i / 40f, size.height * (0.48f + 0.08f * sin(i * 0.45f))) }
-            for (i in 0 until pts.lastIndex) drawLine(color, pts[i], pts[i + 1], 2.dp.toPx())
+            if (samples.size > 1) {
+                val pts = samples.mapIndexed { index, sample ->
+                    val x = size.width * index / (samples.size - 1).toFloat()
+                    val y = size.height * (1f - sample.coerceIn(0f, 100f) / 100f)
+                    Offset(x, y)
+                }
+                for (i in 0 until pts.lastIndex) drawLine(color, pts[i], pts[i + 1], 2.dp.toPx())
+            }
         }
-        Text("SENSOR HISTORY — PLACEHOLDER", color = Color(0xFF849188), fontSize = 8.sp)
+        Text("ÚLTIMAS ${samples.size} LEITURAS • %", color = Color(0xFF849188), fontSize = 8.sp)
     }
 }
 
