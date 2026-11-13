@@ -116,24 +116,15 @@ class OverlayService : Service() {
         batteryTemp = batteryValues.first
         batteryLevel = batteryValues.second!!
 
-        val close = TextView(this).apply {
-            text = "× CLOSE OVERLAY"
-            textSize = 10f
-            gravity = Gravity.END
-            setTextColor(muted)
-            setPadding(0, 5, 0, 0)
-            setOnClickListener { stopSelf() }
-        }
-        root.addView(close)
-
         val params = WindowManager.LayoutParams(
-            (resources.displayMetrics.widthPixels * 0.94f).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = (8 * resources.displayMetrics.density).toInt()
             y = 90
         }
         var downX = 0f
