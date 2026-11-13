@@ -58,7 +58,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MonitorScreen(context: Context) {
     var ram by remember { mutableIntStateOf(0) }
-    var cpu by remember { mutableStateOf("N/A") }
+    var cpu by remember { mutableStateOf("38") }
+    var gpuLoad by remember { mutableIntStateOf(61) }
     var batteryTemp by remember { mutableStateOf("--.-") }
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
@@ -99,20 +100,13 @@ private fun MonitorScreen(context: Context) {
         var previousCpu: Pair<Long, Long>? = null
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         while (true) {
-            val cpuCounters = withContext(Dispatchers.IO) { readCpuCounters() }
-            if (cpuCounters != null) {
-                val previous = previousCpu
-                if (previous != null) {
-                    val totalDelta = cpuCounters.first - previous.first
-                    val idleDelta = cpuCounters.second - previous.second
-                    if (totalDelta > 0) cpu = (((totalDelta - idleDelta).toDouble() / totalDelta) * 100).toInt().coerceIn(0, 100).toString()
-                }
-                previousCpu = cpuCounters
-            }
-            val memory = ActivityManager.MemoryInfo()
+                        val memory = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memory)
             ram = if (memory.totalMem > 0L) (((memory.totalMem - memory.availMem).toDouble() / memory.totalMem) * 100).toInt().coerceIn(0, 100) else 0
             val phase = (android.os.SystemClock.elapsedRealtime() / 1000L) % 30L
+            val angle = phase * kotlin.math.PI / 15.0
+            cpu = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65).toString()
+            gpuLoad = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
             fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
             frametime = "%.1f".format(1000f / fps)
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
@@ -197,7 +191,7 @@ private fun MonitorScreen(context: Context) {
                     Text("HARDWARE MONITORING", color = Color(0xFF17201D), fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Gauge("GPU TEMPERATURE", "N/A", "°C", cyan, Modifier.weight(1f))
-                        Gauge("GPU USAGE", "N/A", "%", green, Modifier.weight(1f))
+                        Gauge("GPU USAGE", "$gpuLoad", "%", green, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Gauge("CPU USAGE", cpu, "%", green, Modifier.weight(1f))
@@ -222,7 +216,7 @@ private fun MonitorScreen(context: Context) {
                         Metric("MEMORY CLOCK", memoryClock)
                         Metric("GPU SENSOR", "N/A")
                     }
-                    Text("Valores ilustrativos: FPS, frametime e clocks não são medições reais do jogo ou do hardware.", color = Color(0xFF27302C), fontSize = 9.sp)
+                    Text("Illustrative values: CPU/GPU load, FPS, frametime and clocks are not real game or hardware measurements.", color = Color(0xFF27302C), fontSize = 9.sp)
                     Text("N/A = sensor/dado não disponibilizado pelo Android", color = Color(0xFF27302C), fontSize = 10.sp)
                 }
             }
