@@ -85,7 +85,7 @@ class OverlayService : Service() {
             }
         }
         val title = TextView(this).apply {
-            text = "MSI  AFTERBURNER  •  HARDWARE MONITOR"
+            text = "MSI  AFTERBURNER  •  HARDWARE MONITOR   ⋮ HOLD TO MOVE"
             setTextColor(android.graphics.Color.rgb(190, 220, 170))
             textSize = 13f
             setTypeface(null, android.graphics.Typeface.BOLD)
@@ -114,6 +114,29 @@ class OverlayService : Service() {
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             y = 90
+        }
+        var downX = 0f
+        var downY = 0f
+        var startX = 0
+        var startY = 0
+        title.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.rawX
+                    downY = event.rawY
+                    startX = params.x
+                    startY = params.y
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    params.x = startX + (event.rawX - downX).toInt()
+                    params.y = (startY + (event.rawY - downY).toInt()).coerceAtLeast(0)
+                    try { wm.updateViewLayout(root, params) } catch (_: Exception) {}
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> true
+                else -> false
+            }
         }
         try {
             wm.addView(root, params)
