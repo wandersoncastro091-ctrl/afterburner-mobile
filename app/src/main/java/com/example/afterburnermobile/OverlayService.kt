@@ -102,10 +102,10 @@ class OverlayService : Service() {
                 cornerRadius = 5f
             }
         }
-        val gpuValues = addMetricRow(root, "GPU LOAD", "61%", green, yellow, "GPU CLOCK", "650 MHz", cyan, yellow)
+        val gpuValues = addMetricRow(root, "GPU", "61%", green, yellow, "GPU", "650 MHz", cyan, yellow)
         gpuLoad = gpuValues.first
         gpuClockValue = gpuValues.second!!
-        val cpuValues = addMetricRow(root, "CPU LOAD", "38%", cyan, yellow, "CPU CLOCK", "2.00 GHz", cyan, yellow)
+        val cpuValues = addMetricRow(root, "CPU", "38%", cyan, yellow, "CPU", "2.00 GHz", cyan, yellow)
         cpu = cpuValues.first
         cpuClockValue = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
