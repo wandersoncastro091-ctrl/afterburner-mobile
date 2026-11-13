@@ -16,7 +16,10 @@ import java.util.Locale
 class OverlayService : Service() {
     private lateinit var wm: WindowManager
     private var panel: View? = null
-    private lateinit var cpu: TextView
+    private lateinit var cpuClock: TextView
+    private lateinit var cpuLoad: TextView
+    private lateinit var gpuClock: TextView
+    private lateinit var gpuLoad: TextView
     private lateinit var ram: TextView
     private lateinit var batteryTemp: TextView
     private lateinit var batteryLevel: TextView
@@ -27,14 +30,8 @@ class OverlayService : Service() {
 
     private val refresh = object : Runnable {
         override fun run() {
-            val now = readCpu()
-            val old = previous
-            if (now != null && old != null) {
-                val total = now.first - old.first
-                val idle = now.second - old.second
-                if (total > 0) cpu.text = ((total - idle) * 100 / total).coerceIn(0, 100).toString() + "%"
-            }
-            if (now != null) previous = now
+            // Illustrative CPU/GPU telemetry for devices that do not expose these sensors.
+            // These values are intentionally not presented as live hardware measurements.
             val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
             val mem = ActivityManager.MemoryInfo()
             am.getMemoryInfo(mem)
@@ -48,11 +45,19 @@ class OverlayService : Service() {
             val scale = b?.getIntExtra(BatteryManager.EXTRA_SCALE, 100) ?: 100
             batteryTemp.text = if (t >= 0) String.format(Locale.US, "%.1f °C", t / 10f) else "N/A"
             batteryLevel.text = if (l >= 0 && scale > 0) (l * 100 / scale).toString() + "%" else "N/A"
-            // Demonstration-only counter: deliberately labeled so it cannot be mistaken for measured game performance.
             val phase = (SystemClock.elapsedRealtime() / 1000L) % 24L
-            val simulatedFps = (52 + kotlin.math.round(7.0 * kotlin.math.sin(phase * kotlin.math.PI / 12.0)).toInt()).coerceIn(45, 59)
-            demoFps.text = "$simulatedFps FPS (SIM)"
-            demoFrametime.text = String.format(Locale.US, "%.1f ms (SIM)", 1000f / simulatedFps)
+            val angle = phase * kotlin.math.PI / 12.0
+            val cpuLoadValue = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65)
+            val gpuLoadValue = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
+            val cpuClockValue = (1500 + kotlin.math.round(700.0 * (0.5 + 0.5 * kotlin.math.sin(angle / 2.0))).toInt())
+            val gpuClockValue = (400 + kotlin.math.round(400.0 * (0.5 + 0.5 * kotlin.math.cos(angle / 2.0))).toInt())
+            val simulatedFps = (52 + kotlin.math.round(7.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 59)
+            cpuClock.text = "$cpuClockValue MHz"
+            cpuLoad.text = "$cpuLoadValue%"
+            gpuClock.text = "$gpuClockValue MHz"
+            gpuLoad.text = "$gpuLoadValue%"
+            demoFps.text = "$simulatedFps FPS"
+            demoFrametime.text = String.format(Locale.US, "%.1f ms", 1000f / simulatedFps)
             handler.postDelayed(this, 1000)
         }
     }
@@ -105,12 +110,15 @@ class OverlayService : Service() {
         }
         root.addView(title)
 
-        addMetricRow(root, "GPU", "N/A °C", green, yellow, "MEM", "N/A MB", cyan, yellow)
-        val cpuValues = addMetricRow(root, "CPU", "N/A °C", cyan, yellow, "USAGE", "N/A%", cyan, yellow)
-        cpu = cpuValues.second!!
+        val gpuValues = addMetricRow(root, "GPU CLOCK", "800 MHz", green, yellow, "GPU LOAD", "61%", cyan, yellow)
+        gpuClock = gpuValues.first
+        gpuLoad = gpuValues.second!!
+        val cpuValues = addMetricRow(root, "CPU CLOCK", "1850 MHz", cyan, yellow, "CPU LOAD", "38%", cyan, yellow)
+        cpuClock = cpuValues.first
+        cpuLoad = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
-        demoFps = addMetricRow(root, "FPS DEMO", "52 FPS (SIM)", Color.WHITE, yellow).first
-        demoFrametime = addMetricRow(root, "Frametime DEMO", "19.2 ms (SIM)", Color.WHITE, yellow).first
+        demoFps = addMetricRow(root, "FPS", "52 FPS", Color.WHITE, yellow).first
+        demoFrametime = addMetricRow(root, "FRAMETIME", "19.2 ms", Color.WHITE, yellow).first
         val batteryValues = addMetricRow(root, "BATTERY", "N/A °C", cyan, yellow, "LEVEL", "N/A%", green, yellow)
         batteryTemp = batteryValues.first
         batteryLevel = batteryValues.second!!
