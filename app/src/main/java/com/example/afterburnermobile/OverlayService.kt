@@ -115,10 +115,34 @@ class OverlayService : Service() {
                 cornerRadius = 5f
             }
         }
-        val gpuValues = addMetricRow(root, "GPU LOAD", "61%", green, yellow, "GPU CLOCK", "650 MHz", cyan, yellow)
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val closeButton = TextView(this).apply {
+            text = "×"
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setPadding(8, 0, 4, 2)
+            background = GradientDrawable().apply {
+                setColor(Color.argb(110, 70, 70, 70))
+                cornerRadius = 4f
+            }
+            setOnClickListener { stopSelf() }
+        }
+        topBar.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
+        topBar.addView(closeButton, LinearLayout.LayoutParams(
+            (28 * resources.displayMetrics.density).toInt(),
+            (24 * resources.displayMetrics.density).toInt()
+        ))
+        root.addView(topBar)
+
+        val gpuValues = addValueRow(root, "61%", yellow, "650 MHz", yellow)
         gpuLoad = gpuValues.first
         gpuClockValue = gpuValues.second!!
-        val cpuValues = addMetricRow(root, "CPU LOAD", "38%", cyan, yellow, "CPU CLOCK", "2.00 GHz", cyan, yellow)
+        val cpuValues = addValueRow(root, "38%", yellow, "2.00 GHz", yellow)
         cpu = cpuValues.first
         cpuClockValue = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
@@ -172,6 +196,26 @@ class OverlayService : Service() {
             android.util.Log.e("AfterburnerOverlay", "WindowManager.addView failed", e)
             stopSelf()
         }
+    }
+
+    private fun addValueRow(
+        parent: LinearLayout,
+        value1: String,
+        valueColor1: Int,
+        value2: String,
+        valueColor2: Int
+    ): Pair<TextView, TextView?> {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val first = metricText(value1, valueColor1)
+        val second = metricText(value2, valueColor2)
+        row.addView(first)
+        row.addView(View(this), LinearLayout.LayoutParams(12, 1))
+        row.addView(second)
+        parent.addView(row)
+        return first to second
     }
 
     private fun metricText(value: String, color: Int): TextView =
