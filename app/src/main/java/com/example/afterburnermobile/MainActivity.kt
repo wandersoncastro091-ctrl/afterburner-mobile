@@ -64,13 +64,18 @@ private fun MonitorScreen(context: Context) {
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
     var shizukuGranted by remember { mutableStateOf(false) }
-    var fps by remember { mutableIntStateOf(52) }
+    var fps by remember { mutableIntStateOf(-1) }
     var frametime by remember { mutableStateOf("19.2") }
     var cpuClock by remember { mutableStateOf("2.00 GHz") }
     var gpuClock by remember { mutableStateOf("650 MHz") }
     var memoryClock by remember { mutableStateOf("900 MHz") }
     val cpuHistory = remember { mutableStateListOf<Float>() }
     val ramHistory = remember { mutableStateListOf<Float>() }
+    val fpsReader = remember { FpsReader(context) }
+
+    DisposableEffect(fpsReader) {
+        onDispose { fpsReader.close() }
+    }
 
     val permissionResultListener = remember {
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
@@ -117,8 +122,10 @@ private fun MonitorScreen(context: Context) {
             val angle = phase * kotlin.math.PI / 15.0
             cpu = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65).toString()
             gpuLoad = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
-            fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
-            frametime = "%.1f".format(1000f / fps)
+            val demoFps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
+            frametime = "%.1f".format(1000f / demoFps)
+            fpsReader.connect()
+            fps = fpsReader.readFps() ?: -1
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
             cpuClock = "%.2f GHz".format(2.0 + 0.35 * clockPhase)
             gpuClock = "%.0f MHz".format(650.0 + 150.0 * clockPhase)
@@ -208,7 +215,7 @@ private fun MonitorScreen(context: Context) {
                         Gauge("RAM USAGE", "$ram", "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("FRAMERATE", fps.toString(), "FPS", green, Modifier.weight(1f))
+                        Gauge("FRAMERATE", if (fps > 0) fps.toString() else "N/A", "FPS", green, Modifier.weight(1f))
                         Gauge("FRAMETIME", frametime, "ms", cyan, Modifier.weight(1f))
                     }
                     Rule()
@@ -226,12 +233,12 @@ private fun MonitorScreen(context: Context) {
                         Metric("MEMORY CLOCK", memoryClock)
                         Metric("GPU LOAD", "$gpuLoad %")
                     }
-                    Text("Valores ilustrativos: FPS, frametime e clocks não são medições reais do jogo ou do hardware.", color = Color(0xFF27302C), fontSize = 9.sp)
+                    Text("CPU/GPU load, frametime e clocks são ilustrativos; FPS é lido do SurfaceFlinger.", color = Color(0xFF27302C), fontSize = 9.sp)
                 }
             }
             item { Graph("CPU USAGE HISTORY", green, cpuHistory) }
             item { Graph("RAM USAGE HISTORY", cyan, ramHistory) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.1", color = Color.Gray, fontSize = 9.sp) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.2", color = Color.Gray, fontSize = 9.sp) }
         }
         }
     }
