@@ -94,7 +94,7 @@ private fun MonitorScreen(context: Context) {
                         if (!Settings.canDrawOverlays(context)) {
                             context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName)))
                         } else {
-                            context.startService(Intent(context, OverlayService::class.java))
+                            context.startForegroundService(Intent(context, OverlayService::class.java))
                             Toast.makeText(context, "Overlay iniciado", Toast.LENGTH_SHORT).show()
                         }
                     }, modifier = Modifier.weight(1f)) { Text("START OVERLAY") }
