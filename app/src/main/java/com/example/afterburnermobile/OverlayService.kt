@@ -60,7 +60,7 @@ class OverlayService : Service() {
                 val measuredFps = fpsReader.readFps()
                 demoFps.text = if (measuredFps != null) "$measuredFps FPS" else "N/A FPS"
             }
-            demoFrametime.text = String.format(Locale.US, "%.1f ms (SIM)", 1000f / simulatedFps)
+            demoFrametime.text = "19.2 ms (SIM)"
             handler.postDelayed(this, 1000)
         }
     }
