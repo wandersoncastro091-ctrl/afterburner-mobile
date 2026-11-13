@@ -13,6 +13,7 @@ import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -26,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -215,10 +217,14 @@ private fun Header() {
             .border(2.dp, Color(0xFF3D4842), RoundedCornerShape(8.dp)).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("MSI", color = Color(0xFF202823), fontSize = 25.sp, fontWeight = FontWeight.Black)
-        Spacer(Modifier.width(10.dp))
+        Image(
+            painter = painterResource(id = R.drawable.afterburner_logo),
+            contentDescription = "MSI Afterburner original logo",
+            modifier = Modifier.size(56.dp)
+        )
+        Spacer(Modifier.width(12.dp))
         Column {
-            Text("AFTERBURNER", color = Color(0xFF17201B), fontSize = 19.sp, fontWeight = FontWeight.Black)
+            Text("MSI AFTERBURNER", color = Color(0xFF17201B), fontSize = 19.sp, fontWeight = FontWeight.Black)
             Text("MOBILE / HARDWARE MONITOR", color = Color(0xFF29332D), fontSize = 9.sp)
         }
     }
