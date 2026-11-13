@@ -3,6 +3,8 @@ name: Afterburner Mobile v0.9.1 APK
 on:
   push:
     branches: [ afterburner-v0.9-updates ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
