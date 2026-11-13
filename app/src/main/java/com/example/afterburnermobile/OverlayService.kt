@@ -59,6 +59,8 @@ class OverlayService : Service() {
             val gpuLoadPercent = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
             cpu.text = "$cpuLoad%"
             gpuLoad.text = "$gpuLoadPercent%"
+            val demoFps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
+            frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / demoFps)
             fpsReader.connect()
             serviceScope.launch {
                 val measuredFps = fpsReader.readFps()
