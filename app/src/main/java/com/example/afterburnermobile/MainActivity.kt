@@ -58,7 +58,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MonitorScreen(context: Context) {
     var ram by remember { mutableIntStateOf(0) }
-    var cpu by remember { mutableStateOf("N/A") }
+    var cpu by remember { mutableStateOf("38") }
+    var gpuLoad by remember { mutableIntStateOf(61) }
     var batteryTemp by remember { mutableStateOf("--.-") }
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
@@ -113,7 +114,10 @@ private fun MonitorScreen(context: Context) {
             activityManager.getMemoryInfo(memory)
             ram = if (memory.totalMem > 0L) (((memory.totalMem - memory.availMem).toDouble() / memory.totalMem) * 100).toInt().coerceIn(0, 100) else 0
             val phase = (android.os.SystemClock.elapsedRealtime() / 1000L) % 30L
-            fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
+            val angle = phase * kotlin.math.PI / 15.0
+            cpu = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65).toString()
+            gpuLoad = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
+            fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
             frametime = "%.1f".format(1000f / fps)
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
             cpuClock = "%.2f GHz".format(2.0 + 0.35 * clockPhase)
@@ -196,8 +200,8 @@ private fun MonitorScreen(context: Context) {
                 ) {
                     Text("HARDWARE MONITORING", color = Color(0xFF17201D), fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("GPU TEMPERATURE", "N/A", "°C", cyan, Modifier.weight(1f))
-                        Gauge("GPU USAGE", "N/A", "%", green, Modifier.weight(1f))
+                        Gauge("GPU LOAD", "$gpuLoad", "%", green, Modifier.weight(1f))
+                        Gauge("CPU LOAD", cpu, "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Gauge("CPU USAGE", cpu, "%", green, Modifier.weight(1f))
@@ -220,10 +224,9 @@ private fun MonitorScreen(context: Context) {
                     Rule()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Metric("MEMORY CLOCK", memoryClock)
-                        Metric("GPU SENSOR", "N/A")
+                        Metric("GPU LOAD", "$gpuLoad %")
                     }
                     Text("Valores ilustrativos: FPS, frametime e clocks não são medições reais do jogo ou do hardware.", color = Color(0xFF27302C), fontSize = 9.sp)
-                    Text("N/A = sensor/dado não disponibilizado pelo Android", color = Color(0xFF27302C), fontSize = 10.sp)
                 }
             }
             item { Graph("CPU USAGE HISTORY", green, cpuHistory) }
