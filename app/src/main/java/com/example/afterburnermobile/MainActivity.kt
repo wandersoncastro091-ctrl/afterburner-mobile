@@ -140,7 +140,7 @@ private fun MonitorScreen(context: Context) {
             }
             item { Graph("GPU TEMPERATURE", cyan) }
             item { Graph("GPU USAGE", green) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.1", color = Color.Gray, fontSize = 9.sp) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.2", color = Color.Gray, fontSize = 9.sp) }
         }
         }
     }
