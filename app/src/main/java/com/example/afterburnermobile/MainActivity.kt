@@ -62,6 +62,20 @@ private fun MonitorScreen(context: Context) {
     var shizukuConnected by remember { mutableStateOf(false) }
     var shizukuGranted by remember { mutableStateOf(false) }
 
+    val permissionResultListener = remember {
+        Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+            if (requestCode == 1001) {
+                shizukuGranted = grantResult == PackageManager.PERMISSION_GRANTED
+                Toast.makeText(context, if (shizukuGranted) "Permissão do Shizuku concedida!" else "Permissão do Shizuku recusada.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        Shizuku.addRequestPermissionResultListener(permissionResultListener)
+        onDispose { Shizuku.removeRequestPermissionResultListener(permissionResultListener) }
+    }
+
     LaunchedEffect(Unit) {
         while (true) {
             shizukuConnected = try { Shizuku.pingBinder() } catch (_: Exception) { false }
@@ -139,8 +153,11 @@ private fun MonitorScreen(context: Context) {
                                 Toast.makeText(context, "Abra o Shizuku e inicie o serviço primeiro.", Toast.LENGTH_LONG).show()
                             } else if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
                                 Toast.makeText(context, "Permissão do Shizuku já concedida.", Toast.LENGTH_SHORT).show()
+                            } else if (Shizuku.shouldShowRequestPermissionRationale()) {
+                                Toast.makeText(context, "Abra Shizuku > Aplicativos autorizados e permita o Afterburner Mobile.", Toast.LENGTH_LONG).show()
                             } else {
                                 Shizuku.requestPermission(1001)
+                                Toast.makeText(context, "Solicitação enviada ao Shizuku.", Toast.LENGTH_SHORT).show()
                             }
                         } catch (e: Exception) {
                             Toast.makeText(context, "Shizuku indisponível: " + (e.message ?: e.javaClass.simpleName), Toast.LENGTH_LONG).show()
