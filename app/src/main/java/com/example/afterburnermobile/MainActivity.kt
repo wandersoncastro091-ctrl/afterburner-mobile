@@ -121,6 +121,33 @@ private fun MonitorScreen(context: Context) {
                         Toast.makeText(context, "Overlay encerrado", Toast.LENGTH_SHORT).show()
                     }, modifier = Modifier.weight(1f)) { Text("STOP") }
                 }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    when {
+                        shizukuGranted -> "SHIZUKU: PERMISSION GRANTED"
+                        shizukuConnected -> "SHIZUKU: CONNECTED — PERMISSION REQUIRED"
+                        else -> "SHIZUKU: NOT CONNECTED"
+                    },
+                    color = if (shizukuGranted) green else Color(0xFFFFD75E),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Button(
+                    onClick = {
+                        try {
+                            if (!Shizuku.pingBinder()) {
+                                Toast.makeText(context, "Abra o Shizuku e inicie o serviço primeiro.", Toast.LENGTH_LONG).show()
+                            } else if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+                                Toast.makeText(context, "Permissão do Shizuku já concedida.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Shizuku.requestPermission(1001)
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Shizuku indisponível: " + (e.message ?: e.javaClass.simpleName), Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (shizukuGranted) "SHIZUKU CONNECTED" else "CONNECT SHIZUKU") }
             }
             LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { Header() }
