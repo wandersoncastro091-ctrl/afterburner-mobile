@@ -53,6 +53,10 @@ class OverlayService : Service() {
             // Demo telemetry is disclosed on the main screen; these values are not game/device measurements.
             val phase = (SystemClock.elapsedRealtime() / 1000L) % 30L
             val angle = phase * kotlin.math.PI / 15.0
+            val cpuLoad = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65)
+            val gpuLoadPercent = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
+            cpu.text = "$cpuLoad%"
+            gpuLoad.text = "$gpuLoadPercent%"
             val demoFps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
             frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / demoFps)
             fpsReader.connect()
@@ -133,8 +137,12 @@ class OverlayService : Service() {
         ))
         root.addView(topBar)
 
-        gpuClockValue = metricText("650 MHz", yellow).also { root.addView(it) }
-        cpuClockValue = metricText("2.00 GHz", yellow).also { root.addView(it) }
+        val gpuValues = addMetricRow(root, "GPU", "61%", green, yellow, "GPU", "650 MHz", cyan, yellow)
+        gpuLoad = gpuValues.first
+        gpuClockValue = gpuValues.second!!
+        val cpuValues = addMetricRow(root, "CPU", "38%", cyan, yellow, "CPU", "2.00 GHz", cyan, yellow)
+        cpu = cpuValues.first
+        cpuClockValue = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
         fpsValue = addMetricRow(root, "FPS", "52 FPS", yellow, yellow).first
         frametimeValue = addMetricRow(root, "Frametime", "19.2 ms", cyan, yellow).first
