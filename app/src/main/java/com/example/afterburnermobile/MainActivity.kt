@@ -5,6 +5,9 @@ import android.app.ActivityManager
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Bundle
+import android.provider.Settings
+import android.net.Uri
+import android.widget.Toast
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,6 +18,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,7 +86,25 @@ private fun MonitorScreen(context: Context) {
     }
 
     Surface(color = Color(0xFF171B19)) {
-        LazyColumn(Modifier.fillMaxSize().padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxWidth().background(Color(0xFF252D28)).padding(10.dp)) {
+                Text("IN-GAME OVERLAY", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        if (!Settings.canDrawOverlays(context)) {
+                            context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName)))
+                        } else {
+                            context.startService(Intent(context, OverlayService::class.java))
+                            Toast.makeText(context, "Overlay iniciado", Toast.LENGTH_SHORT).show()
+                        }
+                    }, modifier = Modifier.weight(1f)) { Text("START OVERLAY") }
+                    OutlinedButton(onClick = {
+                        context.stopService(Intent(context, OverlayService::class.java))
+                        Toast.makeText(context, "Overlay encerrado", Toast.LENGTH_SHORT).show()
+                    }, modifier = Modifier.weight(1f)) { Text("STOP") }
+                }
+            }
+            LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { Header() }
             item {
                 Column(
@@ -118,6 +141,7 @@ private fun MonitorScreen(context: Context) {
             item { Graph("GPU TEMPERATURE", cyan) }
             item { Graph("GPU USAGE", green) }
             item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.1", color = Color.Gray, fontSize = 9.sp) }
+        }
         }
     }
 }
