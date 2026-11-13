@@ -20,7 +20,7 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; aidl = true }
 }
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
