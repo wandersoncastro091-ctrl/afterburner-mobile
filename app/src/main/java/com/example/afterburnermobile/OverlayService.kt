@@ -108,7 +108,7 @@ class OverlayService : Service() {
         val muted = Color.rgb(205, 205, 205)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(12, 9, 12, 8)
+            setPadding(4, 9, 12, 8)
             background = GradientDrawable().apply {
                 setColor(Color.argb(145, 5, 7, 8))
                 setStroke(2, Color.argb(145, 75, 85, 82))
