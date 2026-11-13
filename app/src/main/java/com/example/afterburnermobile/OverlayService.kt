@@ -5,6 +5,7 @@ import android.content.*
 import android.graphics.PixelFormat
 import android.os.*
 import android.view.*
+import android.provider.Settings
 import android.widget.*
 import java.io.File
 import java.util.Locale
@@ -69,6 +70,11 @@ class OverlayService : Service() {
     }
 
     private fun showPanel() {
+        if (!Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "Permissão de sobreposição não está ativada.", Toast.LENGTH_LONG).show()
+            stopSelf()
+            return
+        }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(14, 10, 14, 10)
@@ -113,7 +119,9 @@ class OverlayService : Service() {
             wm.addView(root, params)
             panel = root
             handler.post(refresh)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Toast.makeText(this, "Falha ao abrir overlay: " + (e.message ?: e.javaClass.simpleName), Toast.LENGTH_LONG).show()
+            android.util.Log.e("AfterburnerOverlay", "WindowManager.addView failed", e)
             stopSelf()
         }
     }
