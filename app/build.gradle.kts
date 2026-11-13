@@ -10,8 +10,8 @@ android {
         applicationId = "com.example.afterburnermobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.9"
+        versionCode = 10
+        versionName = "0.9.1"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
