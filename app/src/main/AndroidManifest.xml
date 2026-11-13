@@ -6,6 +6,7 @@
     <application
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:label="Afterburner Mobile"
+        android:icon="@drawable/afterburner_logo"
         android:allowBackup="false"
         android:supportsRtl="true">
         <provider

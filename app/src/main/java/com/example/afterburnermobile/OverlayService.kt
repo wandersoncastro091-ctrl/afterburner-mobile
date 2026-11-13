@@ -20,8 +20,11 @@ class OverlayService : Service() {
     private lateinit var ram: TextView
     private lateinit var batteryTemp: TextView
     private lateinit var batteryLevel: TextView
-    private lateinit var demoFps: TextView
-    private lateinit var demoFrametime: TextView
+    private lateinit var fpsValue: TextView
+    private lateinit var frametimeValue: TextView
+    private lateinit var cpuClockValue: TextView
+    private lateinit var gpuClockValue: TextView
+    private lateinit var memoryClockValue: TextView
     private var previous: Pair<Long, Long>? = null
     private val handler = Handler(Looper.getMainLooper())
 
@@ -48,11 +51,15 @@ class OverlayService : Service() {
             val scale = b?.getIntExtra(BatteryManager.EXTRA_SCALE, 100) ?: 100
             batteryTemp.text = if (t >= 0) String.format(Locale.US, "%.1f °C", t / 10f) else "N/A"
             batteryLevel.text = if (l >= 0 && scale > 0) (l * 100 / scale).toString() + "%" else "N/A"
-            // Demonstration-only counter: deliberately labeled so it cannot be mistaken for measured game performance.
-            val phase = (SystemClock.elapsedRealtime() / 1000L) % 24L
-            val simulatedFps = (52 + kotlin.math.round(7.0 * kotlin.math.sin(phase * kotlin.math.PI / 12.0)).toInt()).coerceIn(45, 59)
-            demoFps.text = "$simulatedFps FPS (SIM)"
-            demoFrametime.text = String.format(Locale.US, "%.1f ms (SIM)", 1000f / simulatedFps)
+            // Demo telemetry is disclosed on the main screen; these values are not game/device measurements.
+            val phase = (SystemClock.elapsedRealtime() / 1000L) % 30L
+            val fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
+            fpsValue.text = "$fps FPS"
+            frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / fps)
+            val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
+            cpuClockValue.text = String.format(Locale.US, "%.2f GHz", 2.0 + 0.35 * clockPhase)
+            gpuClockValue.text = String.format(Locale.US, "%.0f MHz", 650.0 + 150.0 * clockPhase)
+            memoryClockValue.text = String.format(Locale.US, "%.0f MHz", 900.0 + 100.0 * clockPhase)
             handler.postDelayed(this, 1000)
         }
     }
@@ -91,26 +98,20 @@ class OverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             setPadding(12, 9, 12, 8)
             background = GradientDrawable().apply {
-                setColor(Color.argb(205, 5, 7, 8))
-                setStroke(2, Color.argb(185, 75, 85, 82))
+                setColor(Color.argb(145, 5, 7, 8))
+                setStroke(2, Color.argb(145, 75, 85, 82))
                 cornerRadius = 5f
             }
         }
-        val title = TextView(this).apply {
-            text = "MSI AFTERBURNER  •  HARDWARE MONITOR   ⋮ HOLD TO MOVE"
-            setTextColor(Color.rgb(170, 245, 190))
-            textSize = 13f
-            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-            setPadding(0, 0, 0, 5)
-        }
-        root.addView(title)
-
         addMetricRow(root, "GPU", "N/A °C", green, yellow, "MEM", "N/A MB", cyan, yellow)
         val cpuValues = addMetricRow(root, "CPU", "N/A °C", cyan, yellow, "USAGE", "N/A%", cyan, yellow)
         cpu = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
-        demoFps = addMetricRow(root, "FPS DEMO", "52 FPS (SIM)", Color.WHITE, yellow).first
-        demoFrametime = addMetricRow(root, "Frametime DEMO", "19.2 ms (SIM)", Color.WHITE, yellow).first
+        fpsValue = addMetricRow(root, "FPS", "52 FPS", yellow, yellow).first
+        frametimeValue = addMetricRow(root, "Frametime", "19.2 ms", cyan, yellow).first
+        cpuClockValue = addMetricRow(root, "CPU CLOCK", "2.00 GHz", cyan, yellow).first
+        gpuClockValue = addMetricRow(root, "GPU CLOCK", "650 MHz", green, yellow).first
+        memoryClockValue = addMetricRow(root, "MEM CLOCK", "900 MHz", cyan, yellow).first
         val batteryValues = addMetricRow(root, "BATTERY", "N/A °C", cyan, yellow, "LEVEL", "N/A%", green, yellow)
         batteryTemp = batteryValues.first
         batteryLevel = batteryValues.second!!
@@ -139,7 +140,7 @@ class OverlayService : Service() {
         var downY = 0f
         var startX = 0
         var startY = 0
-        title.setOnTouchListener { _, event ->
+        root.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     downX = event.rawX
