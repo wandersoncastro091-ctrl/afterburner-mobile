@@ -108,7 +108,7 @@ class OverlayService : Service() {
         val muted = Color.rgb(205, 205, 205)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(12, 9, 4, 8)
+            setPadding(12, 9, 0, 8)
             background = GradientDrawable().apply {
                 setColor(Color.argb(145, 5, 7, 8))
                 setStroke(2, Color.argb(145, 75, 85, 82))
@@ -204,7 +204,7 @@ class OverlayService : Service() {
             setTextColor(color)
             textSize = 14f
             typeface = Typeface.create("monospace", Typeface.BOLD)
-            setPadding(0, 3, 9, 3)
+            setPadding(0, 3, 0, 3)
         }
 
     private fun addMetricRow(
