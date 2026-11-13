@@ -12,6 +12,11 @@ import android.view.*
 import android.widget.*
 import java.io.File
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class OverlayService : Service() {
     private lateinit var wm: WindowManager
@@ -24,6 +29,8 @@ class OverlayService : Service() {
     private lateinit var demoFrametime: TextView
     private var previous: Pair<Long, Long>? = null
     private val handler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private lateinit var fpsReader: FpsReader
 
     private val refresh = object : Runnable {
         override fun run() {
@@ -48,11 +55,12 @@ class OverlayService : Service() {
             val scale = b?.getIntExtra(BatteryManager.EXTRA_SCALE, 100) ?: 100
             batteryTemp.text = if (t >= 0) String.format(Locale.US, "%.1f °C", t / 10f) else "N/A"
             batteryLevel.text = if (l >= 0 && scale > 0) (l * 100 / scale).toString() + "%" else "N/A"
-            // Demonstration-only counter: deliberately labeled so it cannot be mistaken for measured game performance.
-            val phase = (SystemClock.elapsedRealtime() / 1000L) % 24L
-            val simulatedFps = (52 + kotlin.math.round(7.0 * kotlin.math.sin(phase * kotlin.math.PI / 12.0)).toInt()).coerceIn(45, 59)
-            demoFps.text = "$simulatedFps FPS (SIM)"
-            demoFrametime.text = String.format(Locale.US, "%.1f ms (SIM)", 1000f / simulatedFps)
+            fpsReader.connect()
+            serviceScope.launch {
+                val measuredFps = fpsReader.readFps()
+                demoFps.text = if (measuredFps != null) "$measuredFps FPS" else "N/A FPS"
+            }
+            demoFrametime.text = "19.2 ms (SIM)"
             handler.postDelayed(this, 1000)
         }
     }
@@ -61,6 +69,8 @@ class OverlayService : Service() {
         super.onCreate()
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         createNotification()
+        fpsReader = FpsReader(applicationContext)
+        fpsReader.connect()
         showPanel()
     }
 
@@ -109,7 +119,7 @@ class OverlayService : Service() {
         val cpuValues = addMetricRow(root, "CPU", "N/A °C", cyan, yellow, "USAGE", "N/A%", cyan, yellow)
         cpu = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
-        demoFps = addMetricRow(root, "FPS DEMO", "52 FPS (SIM)", Color.WHITE, yellow).first
+        demoFps = addMetricRow(root, "FPS", "N/A FPS", Color.WHITE, yellow).first
         demoFrametime = addMetricRow(root, "Frametime DEMO", "19.2 ms (SIM)", Color.WHITE, yellow).first
         val batteryValues = addMetricRow(root, "BATTERY", "N/A °C", cyan, yellow, "LEVEL", "N/A%", green, yellow)
         batteryTemp = batteryValues.first
@@ -210,6 +220,8 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(refresh)
+        serviceScope.cancel()
+        if (::fpsReader.isInitialized) fpsReader.close()
         panel?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         panel = null
         super.onDestroy()
