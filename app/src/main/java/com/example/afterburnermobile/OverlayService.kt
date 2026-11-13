@@ -78,7 +78,7 @@ class OverlayService : Service() {
         }
         val green = Color.rgb(0, 235, 115)
         val cyan = Color.rgb(0, 220, 235)
-        val yellow = Color.rgb(255, 218, 70)
+        val yellow = Color.rgb(255, 179, 71)
         val muted = Color.rgb(205, 205, 205)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
