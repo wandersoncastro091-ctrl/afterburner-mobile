@@ -117,7 +117,7 @@ class OverlayService : Service() {
         }
         val topBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
         }
         val closeButton = TextView(this).apply {
             text = "×"
@@ -132,7 +132,6 @@ class OverlayService : Service() {
             }
             setOnClickListener { stopSelf() }
         }
-        topBar.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
         topBar.addView(closeButton, LinearLayout.LayoutParams(
             (28 * resources.displayMetrics.density).toInt(),
             (24 * resources.displayMetrics.density).toInt()
