@@ -144,7 +144,7 @@ private fun MonitorScreen(context: Context) {
                         shizukuConnected -> "SHIZUKU: CONNECTED — PERMISSION REQUIRED"
                         else -> "SHIZUKU: NOT CONNECTED"
                     },
-                    color = if (shizukuGranted) green else Color(0xFFFFD75E),
+                    color = if (shizukuGranted) green else Color(0xFFFFB347),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
