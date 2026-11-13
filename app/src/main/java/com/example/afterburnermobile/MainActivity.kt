@@ -122,9 +122,10 @@ private fun MonitorScreen(context: Context) {
             val angle = phase * kotlin.math.PI / 15.0
             cpu = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65).toString()
             gpuLoad = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
+            val demoFps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
+            frametime = "%.1f".format(1000f / demoFps)
             fpsReader.connect()
             fps = fpsReader.readFps() ?: -1
-            frametime = if (fps > 0) "%.1f".format(1000f / fps) else "--.-"
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
             cpuClock = "%.2f GHz".format(2.0 + 0.35 * clockPhase)
             gpuClock = "%.0f MHz".format(650.0 + 150.0 * clockPhase)
