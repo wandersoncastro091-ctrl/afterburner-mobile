@@ -1,6 +1,7 @@
 package com.example.afterburnermobile
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.app.ActivityManager
 import android.content.IntentFilter
 import android.os.BatteryManager
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import rikka.shizuku.Shizuku
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,6 +59,18 @@ private fun MonitorScreen(context: Context) {
     var cpu by remember { mutableStateOf("N/A") }
     var batteryTemp by remember { mutableStateOf("--.-") }
     var batteryLevel by remember { mutableIntStateOf(0) }
+    var shizukuConnected by remember { mutableStateOf(false) }
+    var shizukuGranted by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            shizukuConnected = try { Shizuku.pingBinder() } catch (_: Exception) { false }
+            shizukuGranted = if (shizukuConnected) {
+                try { Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED } catch (_: Exception) { false }
+            } else false
+            delay(1000)
+        }
+    }
 
     LaunchedEffect(Unit) {
         var previousCpu: Pair<Long, Long>? = null
@@ -144,7 +158,7 @@ private fun MonitorScreen(context: Context) {
             }
             item { Graph("GPU TEMPERATURE", cyan) }
             item { Graph("GPU USAGE", green) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.2", color = Color.Gray, fontSize = 9.sp) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.6", color = Color.Gray, fontSize = 9.sp) }
         }
         }
     }
