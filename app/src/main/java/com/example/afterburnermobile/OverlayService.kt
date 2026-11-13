@@ -17,6 +17,7 @@ class OverlayService : Service() {
     private lateinit var wm: WindowManager
     private var panel: View? = null
     private lateinit var cpu: TextView
+    private lateinit var gpuLoad: TextView
     private lateinit var ram: TextView
     private lateinit var batteryTemp: TextView
     private lateinit var batteryLevel: TextView
@@ -30,14 +31,7 @@ class OverlayService : Service() {
 
     private val refresh = object : Runnable {
         override fun run() {
-            val now = readCpu()
-            val old = previous
-            if (now != null && old != null) {
-                val total = now.first - old.first
-                val idle = now.second - old.second
-                if (total > 0) cpu.text = ((total - idle) * 100 / total).coerceIn(0, 100).toString() + "%"
-            }
-            if (now != null) previous = now
+            // CPU/GPU load and clocks below are illustrative values, not live sensor readings.
             val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
             val mem = ActivityManager.MemoryInfo()
             am.getMemoryInfo(mem)
@@ -53,10 +47,15 @@ class OverlayService : Service() {
             batteryLevel.text = if (l >= 0 && scale > 0) (l * 100 / scale).toString() + "%" else "N/A"
             // Demo telemetry is disclosed on the main screen; these values are not game/device measurements.
             val phase = (SystemClock.elapsedRealtime() / 1000L) % 30L
-            val fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
+            val angle = phase * kotlin.math.PI / 15.0
+            val cpuLoad = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65)
+            val gpuLoadPercent = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
+            cpu.text = "$cpuLoad%"
+            gpuLoad.text = "$gpuLoadPercent%"
+            val fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
             fpsValue.text = "$fps FPS"
             frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / fps)
-            val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
+            val clockPhase = kotlin.math.sin(angle)
             cpuClockValue.text = String.format(Locale.US, "%.2f GHz", 2.0 + 0.35 * clockPhase)
             gpuClockValue.text = String.format(Locale.US, "%.0f MHz", 650.0 + 150.0 * clockPhase)
             memoryClockValue.text = String.format(Locale.US, "%.0f MHz", 900.0 + 100.0 * clockPhase)
@@ -103,37 +102,29 @@ class OverlayService : Service() {
                 cornerRadius = 5f
             }
         }
-        addMetricRow(root, "GPU", "N/A °C", green, yellow, "MEM", "N/A MB", cyan, yellow)
-        val cpuValues = addMetricRow(root, "CPU", "N/A °C", cyan, yellow, "USAGE", "N/A%", cyan, yellow)
-        cpu = cpuValues.second!!
+        val gpuValues = addMetricRow(root, "GPU LOAD", "61%", green, yellow, "GPU CLOCK", "650 MHz", cyan, yellow)
+        gpuLoad = gpuValues.first
+        gpuClockValue = gpuValues.second!!
+        val cpuValues = addMetricRow(root, "CPU LOAD", "38%", cyan, yellow, "CPU CLOCK", "2.00 GHz", cyan, yellow)
+        cpu = cpuValues.first
+        cpuClockValue = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
         fpsValue = addMetricRow(root, "FPS", "52 FPS", yellow, yellow).first
         frametimeValue = addMetricRow(root, "Frametime", "19.2 ms", cyan, yellow).first
-        cpuClockValue = addMetricRow(root, "CPU CLOCK", "2.00 GHz", cyan, yellow).first
-        gpuClockValue = addMetricRow(root, "GPU CLOCK", "650 MHz", green, yellow).first
         memoryClockValue = addMetricRow(root, "MEM CLOCK", "900 MHz", cyan, yellow).first
         val batteryValues = addMetricRow(root, "BATTERY", "N/A °C", cyan, yellow, "LEVEL", "N/A%", green, yellow)
         batteryTemp = batteryValues.first
         batteryLevel = batteryValues.second!!
 
-        val close = TextView(this).apply {
-            text = "× CLOSE OVERLAY"
-            textSize = 10f
-            gravity = Gravity.END
-            setTextColor(muted)
-            setPadding(0, 5, 0, 0)
-            setOnClickListener { stopSelf() }
-        }
-        root.addView(close)
-
         val params = WindowManager.LayoutParams(
-            (resources.displayMetrics.widthPixels * 0.94f).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            gravity = Gravity.TOP or Gravity.LEFT
+            x = (8 * resources.displayMetrics.density).toInt()
             y = 90
         }
         var downX = 0f
