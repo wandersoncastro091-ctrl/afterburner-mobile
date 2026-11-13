@@ -53,7 +53,7 @@ class OverlayService : Service() {
             batteryLevel.text = if (l >= 0 && scale > 0) (l * 100 / scale).toString() + "%" else "N/A"
             // Demo telemetry is disclosed on the main screen; these values are not game/device measurements.
             val phase = (SystemClock.elapsedRealtime() / 1000L) % 30L
-            val fps = (52 + kotlin.math.round(7.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
+            val fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
             fpsValue.text = "$fps FPS"
             frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / fps)
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
