@@ -94,8 +94,12 @@ private fun MonitorScreen(context: Context) {
                         if (!Settings.canDrawOverlays(context)) {
                             context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName)))
                         } else {
-                            context.startForegroundService(Intent(context, OverlayService::class.java))
-                            Toast.makeText(context, "Overlay iniciado", Toast.LENGTH_SHORT).show()
+                            try {
+                                context.startForegroundService(Intent(context, OverlayService::class.java))
+                                Toast.makeText(context, "Solicitação do overlay enviada", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Não foi possível iniciar: " + (e.message ?: e.javaClass.simpleName), Toast.LENGTH_LONG).show()
+                            }
                         }
                     }, modifier = Modifier.weight(1f)) { Text("START OVERLAY") }
                     OutlinedButton(onClick = {
