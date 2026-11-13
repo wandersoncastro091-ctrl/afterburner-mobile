@@ -102,6 +102,23 @@ class OverlayService : Service() {
                 cornerRadius = 5f
             }
         }
+        val closeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+        }
+        val closeButton = TextView(this).apply {
+            text = "×"
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(4, 0, 2, 2)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { stopSelf() }
+        }
+        closeRow.addView(closeButton)
+        root.addView(closeRow)
+
         val gpuValues = addMetricRow(root, "GPU", "61%", green, yellow, "GPU", "650 MHz", cyan, yellow)
         gpuLoad = gpuValues.first
         gpuClockValue = gpuValues.second!!
