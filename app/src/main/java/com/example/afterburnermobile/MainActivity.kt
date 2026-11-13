@@ -63,6 +63,20 @@ private fun MonitorScreen(context: Context) {
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
     var shizukuGranted by remember { mutableStateOf(false) }
+    var fps by remember { mutableStateOf("N/A") }
+    val fpsReader = remember(context) { FpsReader(context.applicationContext) }
+
+    DisposableEffect(fpsReader) {
+        onDispose { fpsReader.close() }
+    }
+
+    LaunchedEffect(fpsReader) {
+        while (true) {
+            fpsReader.connect()
+            fps = fpsReader.readFps()?.toString() ?: "N/A"
+            delay(1000)
+        }
+    }
 
     val permissionResultListener = remember {
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
@@ -186,7 +200,7 @@ private fun MonitorScreen(context: Context) {
                         Gauge("RAM USAGE", "$ram", "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("FRAMERATE", "N/A", "FPS", green, Modifier.weight(1f))
+                        Gauge("FRAMERATE", fps, "FPS", green, Modifier.weight(1f))
                         Gauge("FRAMETIME", "N/A", "ms", cyan, Modifier.weight(1f))
                     }
                     Rule()
