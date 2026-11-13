@@ -1,6 +1,7 @@
 package com.example.afterburnermobile
 
 import android.content.Context
+import android.app.ActivityManager
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Bundle
@@ -28,6 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -45,13 +49,27 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MonitorScreen(context: Context) {
     var ram by remember { mutableIntStateOf(0) }
+    var cpu by remember { mutableIntStateOf(0) }
     var batteryTemp by remember { mutableStateOf("--.-") }
     var batteryLevel by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
+        var previousCpu: Pair<Long, Long>? = null
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         while (true) {
-            val rt = Runtime.getRuntime()
-            ram = (((rt.totalMemory() - rt.freeMemory()).toDouble() / rt.maxMemory()) * 100).toInt().coerceIn(0, 100)
+            val cpuCounters = withContext(Dispatchers.IO) { readCpuCounters() }
+            if (cpuCounters != null) {
+                val previous = previousCpu
+                if (previous != null) {
+                    val totalDelta = cpuCounters.first - previous.first
+                    val idleDelta = cpuCounters.second - previous.second
+                    if (totalDelta > 0) cpu = (((totalDelta - idleDelta).toDouble() / totalDelta) * 100).toInt().coerceIn(0, 100)
+                }
+                previousCpu = cpuCounters
+            }
+            val memory = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memory)
+            ram = if (memory.totalMem > 0L) (((memory.totalMem - memory.availMem).toDouble() / memory.totalMem) * 100).toInt().coerceIn(0, 100) else 0
             val battery = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             val level = battery?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
             val scale = battery?.getIntExtra(BatteryManager.EXTRA_SCALE, 100) ?: 100
@@ -77,7 +95,7 @@ private fun MonitorScreen(context: Context) {
                         Gauge("GPU USAGE", "N/A", "%", green, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("CPU USAGE", "N/A", "%", green, Modifier.weight(1f))
+                        Gauge("CPU USAGE", "$cpu", "%", green, Modifier.weight(1f))
                         Gauge("RAM USAGE", "$ram", "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -170,5 +188,20 @@ private fun Graph(title: String, color: Color) {
             for (i in 0 until pts.lastIndex) drawLine(color, pts[i], pts[i + 1], 2.dp.toPx())
         }
         Text("SENSOR HISTORY — PLACEHOLDER", color = Color(0xFF849188), fontSize = 8.sp)
+    }
+}
+
+
+private fun readCpuCounters(): Pair<Long, Long>? {
+    return try {
+        val fields = File("/proc/stat").bufferedReader().use { it.readLine() }
+            ?.trim()?.split(Regex("\\s+")) ?: return null
+        if (fields.firstOrNull() != "cpu" || fields.size < 5) return null
+        val values = fields.drop(1).take(8).map { it.toLongOrNull() ?: 0L }
+        val total = values.sum()
+        val idle = values.getOrElse(3) { 0L } + values.getOrElse(4) { 0L }
+        total to idle
+    } catch (_: Exception) {
+        null
     }
 }
