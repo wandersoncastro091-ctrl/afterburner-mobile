@@ -60,6 +60,7 @@ private fun MonitorScreen(context: Context) {
     var ram by remember { mutableIntStateOf(0) }
     var cpu by remember { mutableStateOf("38") }
     var gpuLoad by remember { mutableIntStateOf(61) }
+    var gpuTemperature by remember { mutableIntStateOf(61) }
     var batteryTemp by remember { mutableStateOf("--.-") }
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
@@ -107,6 +108,7 @@ private fun MonitorScreen(context: Context) {
             val angle = phase * kotlin.math.PI / 15.0
             cpu = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65).toString()
             gpuLoad = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
+            gpuTemperature = gpuLoad
             fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
             frametime = "%.1f".format(1000f / fps)
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
@@ -190,7 +192,7 @@ private fun MonitorScreen(context: Context) {
                 ) {
                     Text("HARDWARE MONITORING", color = Color(0xFF17201D), fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("GPU TEMPERATURE", "N/A", "°C", cyan, Modifier.weight(1f))
+                        Gauge("GPU TEMPERATURE", "$gpuTemperature", "°C", cyan, Modifier.weight(1f))
                         Gauge("GPU USAGE", "$gpuLoad", "%", green, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -216,7 +218,7 @@ private fun MonitorScreen(context: Context) {
                         Metric("MEMORY CLOCK", memoryClock)
                         Metric("GPU SENSOR", "N/A")
                     }
-                    Text("Illustrative values: CPU/GPU load, FPS, frametime and clocks are not real game or hardware measurements.", color = Color(0xFF27302C), fontSize = 9.sp)
+                    Text("Illustrative values: CPU/GPU load, GPU temperature, FPS, frametime and clocks are not real game or hardware measurements.", color = Color(0xFF27302C), fontSize = 9.sp)
                     Text("N/A = sensor/dado não disponibilizado pelo Android", color = Color(0xFF27302C), fontSize = 10.sp)
                 }
             }
