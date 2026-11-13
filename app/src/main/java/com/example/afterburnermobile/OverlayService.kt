@@ -84,8 +84,8 @@ class OverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             setPadding(12, 9, 12, 8)
             background = GradientDrawable().apply {
-                setColor(Color.rgb(5, 7, 8))
-                setStroke(2, Color.rgb(75, 85, 82))
+                setColor(Color.argb(205, 5, 7, 8))
+                setStroke(2, Color.argb(185, 75, 85, 82))
                 cornerRadius = 5f
             }
         }
