@@ -12,6 +12,11 @@ import android.view.*
 import android.widget.*
 import java.io.File
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class OverlayService : Service() {
     private lateinit var wm: WindowManager
@@ -28,6 +33,8 @@ class OverlayService : Service() {
     private lateinit var memoryClockValue: TextView
     private var previous: Pair<Long, Long>? = null
     private val handler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private lateinit var fpsReader: FpsReader
 
     private val refresh = object : Runnable {
         override fun run() {
@@ -52,9 +59,11 @@ class OverlayService : Service() {
             val gpuLoadPercent = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
             cpu.text = "$cpuLoad%"
             gpuLoad.text = "$gpuLoadPercent%"
-            val fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
-            fpsValue.text = "$fps FPS"
-            frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / fps)
+            fpsReader.connect()
+            serviceScope.launch {
+                val measuredFps = fpsReader.readFps()
+                fpsValue.text = if (measuredFps != null) "$measuredFps FPS" else "N/A FPS"
+            }
             val clockPhase = kotlin.math.sin(angle)
             cpuClockValue.text = String.format(Locale.US, "%.2f GHz", 2.0 + 0.35 * clockPhase)
             gpuClockValue.text = String.format(Locale.US, "%.0f MHz", 650.0 + 150.0 * clockPhase)
@@ -67,6 +76,8 @@ class OverlayService : Service() {
         super.onCreate()
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         createNotification()
+        fpsReader = FpsReader(applicationContext)
+        fpsReader.connect()
         showPanel()
     }
 
@@ -202,6 +213,8 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(refresh)
+        serviceScope.cancel()
+        if (::fpsReader.isInitialized) fpsReader.close()
         panel?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         panel = null
         super.onDestroy()
