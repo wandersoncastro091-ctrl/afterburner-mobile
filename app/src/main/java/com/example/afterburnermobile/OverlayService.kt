@@ -22,6 +22,8 @@ class OverlayService : Service() {
     private lateinit var wm: WindowManager
     private var panel: View? = null
     private lateinit var ram: TextView
+    private lateinit var cpu: TextView
+    private lateinit var gpuLoad: TextView
     private lateinit var batteryTemp: TextView
     private lateinit var batteryLevel: TextView
     private lateinit var fpsValue: TextView
