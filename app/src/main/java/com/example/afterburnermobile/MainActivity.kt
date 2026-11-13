@@ -237,7 +237,7 @@ private fun MonitorScreen(context: Context) {
             }
             item { Graph("CPU USAGE HISTORY", green, cpuHistory) }
             item { Graph("RAM USAGE HISTORY", cyan, ramHistory) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.1", color = Color.Gray, fontSize = 9.sp) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.2", color = Color.Gray, fontSize = 9.sp) }
         }
         }
     }
