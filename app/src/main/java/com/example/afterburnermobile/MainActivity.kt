@@ -113,7 +113,7 @@ private fun MonitorScreen(context: Context) {
             activityManager.getMemoryInfo(memory)
             ram = if (memory.totalMem > 0L) (((memory.totalMem - memory.availMem).toDouble() / memory.totalMem) * 100).toInt().coerceIn(0, 100) else 0
             val phase = (android.os.SystemClock.elapsedRealtime() / 1000L) % 30L
-            fps = (52 + kotlin.math.round(7.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
+            fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(phase * kotlin.math.PI / 15.0)).toInt()).coerceIn(45, 60)
             frametime = "%.1f".format(1000f / fps)
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
             cpuClock = "%.2f GHz".format(2.0 + 0.35 * clockPhase)
@@ -228,7 +228,7 @@ private fun MonitorScreen(context: Context) {
             }
             item { Graph("CPU USAGE HISTORY", green, cpuHistory) }
             item { Graph("RAM USAGE HISTORY", cyan, ramHistory) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9", color = Color.Gray, fontSize = 9.sp) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.1", color = Color.Gray, fontSize = 9.sp) }
         }
         }
     }
