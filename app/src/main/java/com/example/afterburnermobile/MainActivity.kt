@@ -208,8 +208,8 @@ private fun MonitorScreen(context: Context) {
                     }
                     Rule()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Metric("CPU CLOCK", cpuClock)
-                        Metric("GPU CLOCK", gpuClock)
+                        Metric("CPU", cpuClock)
+                        Metric("GPU", gpuClock)
                     }
                     Rule()
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
