@@ -139,10 +139,10 @@ class OverlayService : Service() {
         ))
         root.addView(topBar)
 
-        val gpuValues = addValueRow(root, "61%", yellow, "650 MHz", yellow)
+        val gpuValues = addMetricRow(root, "GPU", "61%", green, yellow, "GPU", "650 MHz", cyan, yellow)
         gpuLoad = gpuValues.first
         gpuClockValue = gpuValues.second!!
-        val cpuValues = addValueRow(root, "38%", yellow, "2.00 GHz", yellow)
+        val cpuValues = addMetricRow(root, "CPU", "38%", cyan, yellow, "CPU", "2.00 GHz", cyan, yellow)
         cpu = cpuValues.first
         cpuClockValue = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
@@ -196,26 +196,6 @@ class OverlayService : Service() {
             android.util.Log.e("AfterburnerOverlay", "WindowManager.addView failed", e)
             stopSelf()
         }
-    }
-
-    private fun addValueRow(
-        parent: LinearLayout,
-        value1: String,
-        valueColor1: Int,
-        value2: String,
-        valueColor2: Int
-    ): Pair<TextView, TextView?> {
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val first = metricText(value1, valueColor1)
-        val second = metricText(value2, valueColor2)
-        row.addView(first)
-        row.addView(View(this), LinearLayout.LayoutParams(12, 1))
-        row.addView(second)
-        parent.addView(row)
-        return first to second
     }
 
     private fun metricText(value: String, color: Int): TextView =
