@@ -66,7 +66,7 @@ class FpsReader(context: Context) {
                     .tag("afterburner-fps-reader")
                     .version(1)
                     .processNameSuffix("fps")
-                Shizuku.unbindUserService(args, current, true)
+                Shizuku.unbindUserService(args, current, false)
             } catch (_: Exception) {}
         }
         connection = null
