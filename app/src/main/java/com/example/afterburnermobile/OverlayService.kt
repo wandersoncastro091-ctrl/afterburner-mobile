@@ -12,13 +12,18 @@ import android.view.*
 import android.widget.*
 import java.io.File
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class OverlayService : Service() {
     private lateinit var wm: WindowManager
     private var panel: View? = null
+    private lateinit var ram: TextView
     private lateinit var cpu: TextView
     private lateinit var gpuLoad: TextView
-    private lateinit var ram: TextView
     private lateinit var batteryTemp: TextView
     private lateinit var batteryLevel: TextView
     private lateinit var fpsValue: TextView
@@ -28,6 +33,8 @@ class OverlayService : Service() {
     private lateinit var memoryClockValue: TextView
     private var previous: Pair<Long, Long>? = null
     private val handler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private lateinit var fpsReader: FpsReader
 
     private val refresh = object : Runnable {
         override fun run() {
@@ -52,9 +59,13 @@ class OverlayService : Service() {
             val gpuLoadPercent = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
             cpu.text = "$cpuLoad%"
             gpuLoad.text = "$gpuLoadPercent%"
-            val fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
-            fpsValue.text = "$fps FPS"
-            frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / fps)
+            val demoFps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
+            frametimeValue.text = String.format(Locale.US, "%.1f ms", 1000f / demoFps)
+            fpsReader.connect()
+            serviceScope.launch {
+                val measuredFps = fpsReader.readFps()
+                fpsValue.text = if (measuredFps != null) "$measuredFps FPS" else "N/A FPS"
+            }
             val clockPhase = kotlin.math.sin(angle)
             cpuClockValue.text = String.format(Locale.US, "%.2f GHz", 2.0 + 0.35 * clockPhase)
             gpuClockValue.text = String.format(Locale.US, "%.0f MHz", 650.0 + 150.0 * clockPhase)
@@ -67,6 +78,8 @@ class OverlayService : Service() {
         super.onCreate()
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         createNotification()
+        fpsReader = FpsReader(applicationContext)
+        fpsReader.connect()
         showPanel()
     }
 
@@ -95,17 +108,40 @@ class OverlayService : Service() {
         val muted = Color.rgb(205, 205, 205)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(12, 9, 12, 8)
+            setPadding(12, 9, 0, 8)
             background = GradientDrawable().apply {
                 setColor(Color.argb(145, 5, 7, 8))
                 setStroke(2, Color.argb(145, 75, 85, 82))
                 cornerRadius = 5f
             }
         }
-        val gpuValues = addMetricRow(root, "GPU LOAD", "61%", green, yellow, "GPU CLOCK", "650 MHz", cyan, yellow)
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+        }
+        val closeButton = TextView(this).apply {
+            text = "×"
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setPadding(8, 0, 4, 2)
+            background = GradientDrawable().apply {
+                setColor(Color.argb(110, 70, 70, 70))
+                cornerRadius = 4f
+            }
+            setOnClickListener { stopSelf() }
+        }
+        topBar.addView(closeButton, LinearLayout.LayoutParams(
+            (28 * resources.displayMetrics.density).toInt(),
+            (24 * resources.displayMetrics.density).toInt()
+        ))
+        root.addView(topBar)
+
+        val gpuValues = addMetricRow(root, "GPU", "61%", green, yellow, "GPU", "650 MHz", cyan, yellow)
         gpuLoad = gpuValues.first
         gpuClockValue = gpuValues.second!!
-        val cpuValues = addMetricRow(root, "CPU LOAD", "38%", cyan, yellow, "CPU CLOCK", "2.00 GHz", cyan, yellow)
+        val cpuValues = addMetricRow(root, "CPU", "38%", cyan, yellow, "CPU", "2.00 GHz", cyan, yellow)
         cpu = cpuValues.first
         cpuClockValue = cpuValues.second!!
         ram = addMetricRow(root, "RAM", "N/A", green, yellow).first
@@ -167,7 +203,7 @@ class OverlayService : Service() {
             setTextColor(color)
             textSize = 14f
             typeface = Typeface.create("monospace", Typeface.BOLD)
-            setPadding(0, 3, 9, 3)
+            setPadding(0, 3, 0, 3)
         }
 
     private fun addMetricRow(
@@ -202,6 +238,8 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(refresh)
+        serviceScope.cancel()
+        if (::fpsReader.isInitialized) fpsReader.close()
         panel?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         panel = null
         super.onDestroy()

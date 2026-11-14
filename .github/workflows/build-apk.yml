@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/v0.9.2-real-fps" ]
   workflow_dispatch:
 
 permissions:

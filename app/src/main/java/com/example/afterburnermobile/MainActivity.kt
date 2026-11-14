@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -38,6 +40,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import rikka.shizuku.Shizuku
 import kotlinx.coroutines.delay
+import com.google.android.libraries.ads.mobile.sdk.MobileAds
+import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
+import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
+import com.google.android.libraries.ads.mobile.sdk.banner.AdView
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
+import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -48,15 +58,28 @@ private val metal = Color(0xFFBFC6C1)
 private val green = Color(0xFFB7E35B)
 private val cyan = Color(0xFF75D6E8)
 
+private const val ADMOB_APP_ID = "ca-app-pub-9108928322800846~8447594862"
+private const val ADMOB_TEST_BANNER_ID = "ca-app-pub-3940256099942544/9214589741"
+
 class MainActivity : ComponentActivity() {
+    private val adsInitialized = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MonitorScreen(this) }
+        Thread {
+            MobileAds.initialize(
+                this,
+                InitializationConfig.Builder(ADMOB_APP_ID).build()
+            ) {
+                runOnUiThread { adsInitialized.value = true }
+            }
+        }.start()
+        setContent { MonitorScreen(this, adsInitialized.value) }
     }
 }
 
 @Composable
-private fun MonitorScreen(context: Context) {
+private fun MonitorScreen(context: Context, adsInitialized: Boolean) {
     var ram by remember { mutableIntStateOf(0) }
     var cpu by remember { mutableStateOf("38") }
     var gpuLoad by remember { mutableIntStateOf(61) }
@@ -64,13 +87,18 @@ private fun MonitorScreen(context: Context) {
     var batteryLevel by remember { mutableIntStateOf(0) }
     var shizukuConnected by remember { mutableStateOf(false) }
     var shizukuGranted by remember { mutableStateOf(false) }
-    var fps by remember { mutableIntStateOf(52) }
+    var fps by remember { mutableIntStateOf(-1) }
     var frametime by remember { mutableStateOf("19.2") }
     var cpuClock by remember { mutableStateOf("2.00 GHz") }
     var gpuClock by remember { mutableStateOf("650 MHz") }
     var memoryClock by remember { mutableStateOf("900 MHz") }
     val cpuHistory = remember { mutableStateListOf<Float>() }
     val ramHistory = remember { mutableStateListOf<Float>() }
+    val fpsReader = remember { FpsReader(context) }
+
+    DisposableEffect(fpsReader) {
+        onDispose { fpsReader.close() }
+    }
 
     val permissionResultListener = remember {
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
@@ -117,8 +145,10 @@ private fun MonitorScreen(context: Context) {
             val angle = phase * kotlin.math.PI / 15.0
             cpu = (38 + kotlin.math.round(18.0 * kotlin.math.sin(angle)).toInt()).coerceIn(20, 65).toString()
             gpuLoad = (61 + kotlin.math.round(17.0 * kotlin.math.cos(angle)).toInt()).coerceIn(40, 80)
-            fps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
-            frametime = "%.1f".format(1000f / fps)
+            val demoFps = (52 + kotlin.math.round(8.0 * kotlin.math.sin(angle)).toInt()).coerceIn(45, 60)
+            frametime = "%.1f".format(1000f / demoFps)
+            fpsReader.connect()
+            fps = fpsReader.readFps() ?: -1
             val clockPhase = kotlin.math.sin(phase * kotlin.math.PI / 15.0)
             cpuClock = "%.2f GHz".format(2.0 + 0.35 * clockPhase)
             gpuClock = "%.0f MHz".format(650.0 + 150.0 * clockPhase)
@@ -208,7 +238,7 @@ private fun MonitorScreen(context: Context) {
                         Gauge("RAM USAGE", "$ram", "%", cyan, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Gauge("FRAMERATE", fps.toString(), "FPS", green, Modifier.weight(1f))
+                        Gauge("FRAMERATE", if (fps > 0) fps.toString() else "N/A", "FPS", green, Modifier.weight(1f))
                         Gauge("FRAMETIME", frametime, "ms", cyan, Modifier.weight(1f))
                     }
                     Rule()
@@ -226,15 +256,36 @@ private fun MonitorScreen(context: Context) {
                         Metric("MEMORY CLOCK", memoryClock)
                         Metric("GPU LOAD", "$gpuLoad %")
                     }
-                    Text("Valores ilustrativos: FPS, frametime e clocks não são medições reais do jogo ou do hardware.", color = Color(0xFF27302C), fontSize = 9.sp)
+                    Text("CPU/GPU load, frametime e clocks são ilustrativos; FPS é lido do SurfaceFlinger.", color = Color(0xFF27302C), fontSize = 9.sp)
                 }
             }
             item { Graph("CPU USAGE HISTORY", green, cpuHistory) }
             item { Graph("RAM USAGE HISTORY", cyan, ramHistory) }
-            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.1", color = Color.Gray, fontSize = 9.sp) }
+            item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.2", color = Color.Gray, fontSize = 9.sp) }
         }
+            if (adsInitialized) BannerAdView()
         }
     }
+}
+
+@Composable
+private fun BannerAdView() {
+    val context = LocalContext.current
+    val adView = remember { AdView(context) }
+    val adSize = remember {
+        AdSize.getLargeAnchoredAdaptiveBannerAdSize(context, context.resources.configuration.screenWidthDp)
+    }
+
+    LaunchedEffect(adSize) {
+        val request = BannerAdRequest.Builder(ADMOB_TEST_BANNER_ID, adSize).build()
+        adView.loadAd(request, object : AdLoadCallback<BannerAd> {
+            override fun onAdLoaded(ad: BannerAd) = Unit
+            override fun onAdFailedToLoad(adError: LoadAdError) = Unit
+        })
+    }
+
+    AndroidView(modifier = Modifier.fillMaxWidth().wrapContentHeight(), factory = { adView })
+    DisposableEffect(adView) { onDispose { adView.destroy() } }
 }
 
 @Composable
