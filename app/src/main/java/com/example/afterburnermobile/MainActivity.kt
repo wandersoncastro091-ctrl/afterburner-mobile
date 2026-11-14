@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -38,6 +40,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import rikka.shizuku.Shizuku
 import kotlinx.coroutines.delay
+import com.google.android.libraries.ads.mobile.sdk.MobileAds
+import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
+import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
+import com.google.android.libraries.ads.mobile.sdk.banner.AdView
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
+import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -48,15 +58,28 @@ private val metal = Color(0xFFBFC6C1)
 private val green = Color(0xFFB7E35B)
 private val cyan = Color(0xFF75D6E8)
 
+private const val ADMOB_APP_ID = "ca-app-pub-9108928322800846~8447594862"
+private const val ADMOB_TEST_BANNER_ID = "ca-app-pub-3940256099942544/9214589741"
+
 class MainActivity : ComponentActivity() {
+    private val adsInitialized = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MonitorScreen(this) }
+        Thread {
+            MobileAds.initialize(
+                this,
+                InitializationConfig.Builder(ADMOB_APP_ID).build()
+            ) {
+                runOnUiThread { adsInitialized.value = true }
+            }
+        }.start()
+        setContent { MonitorScreen(this, adsInitialized.value) }
     }
 }
 
 @Composable
-private fun MonitorScreen(context: Context) {
+private fun MonitorScreen(context: Context, adsInitialized: Boolean) {
     var ram by remember { mutableIntStateOf(0) }
     var cpu by remember { mutableStateOf("38") }
     var gpuLoad by remember { mutableIntStateOf(61) }
@@ -240,8 +263,29 @@ private fun MonitorScreen(context: Context) {
             item { Graph("RAM USAGE HISTORY", cyan, ramHistory) }
             item { Text("AFTERBURNER MOBILE • ANDROID EDITION • v0.9.2", color = Color.Gray, fontSize = 9.sp) }
         }
+            if (adsInitialized) BannerAdView()
         }
     }
+}
+
+@Composable
+private fun BannerAdView() {
+    val context = LocalContext.current
+    val adView = remember { AdView(context) }
+    val adSize = remember {
+        AdSize.getLargeAnchoredAdaptiveBannerAdSize(context, context.resources.configuration.screenWidthDp)
+    }
+
+    LaunchedEffect(adSize) {
+        val request = BannerAdRequest.Builder(ADMOB_TEST_BANNER_ID, adSize).build()
+        adView.loadAd(request, object : AdLoadCallback<BannerAd> {
+            override fun onAdLoaded(ad: BannerAd) = Unit
+            override fun onAdFailedToLoad(adError: LoadAdError) = Unit
+        })
+    }
+
+    AndroidView(modifier = Modifier.fillMaxWidth().wrapContentHeight(), factory = { adView })
+    DisposableEffect(adView) { onDispose { adView.destroy() } }
 }
 
 @Composable
