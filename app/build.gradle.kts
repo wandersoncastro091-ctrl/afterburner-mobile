@@ -32,5 +32,4 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
-    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.6.0")
 }
